@@ -148,6 +148,14 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False):
 
     
         rowcounter += 1
+        
+        #   Add additional rows for manual
+        for k in range(1,4):
+            ws2.cell(rowcounter, 1).border = Border(left = Side(style='thin'))
+            for i in range(2,5):
+                ws2.cell(rowcounter, i).border = thin_border
+            rowcounter += 1
+
         #   Print each product in shopping list
         for k, v in orderedList[key].shopList.container.items():
             # Apply borders & Styles
