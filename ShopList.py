@@ -5,26 +5,32 @@ Object works as a shopping cart
 Holds products of an order
 """
 class  ShopList:
-
     def __init__(self):
-        self.container = {}
-        self.total = 0
+        self.shoppingCart: dict[Product,int] = {}
+        self.total: float = 0
     
-    def add(self, product, quantity):
-        if product in self.container:
-            self.container[product] += quantity
+    #   Add a product to shopping cart and add price to total
+    def add(self, product: Product, quantity: int):
+        if product in self.shoppingCart:
+            self.shoppingCart[product] += quantity
         else:
-            self.container[product] = quantity
-        
+            self.shoppingCart[product] = quantity
+
         if product.price is not None:
             self.total += product.price * quantity
-            self.total = round(self.total,1)
+            self.total = round(self.total,2)
 
-        product.count += quantity   #   Count total number of products
+        #   ---------------Statistical operations----------
+        #   Count total number of products
+        product.totalCount += quantity
 
-
-    def show(self):
-        for k, v in self.container.items():
+    #   Print current object's shopping cart
+    def showShoppingCart(self):
+        for k, v in self.shoppingCart.items():
             print(k.name,v)
+
+
+
+
     
 

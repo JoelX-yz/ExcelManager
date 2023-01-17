@@ -6,9 +6,9 @@ def grossRevenue(products):
     for v in products.values():
         if v.price is None:
             continue
-        total += int(v.price) * v.count
+        total += v.price * v.count
     
-    return total
+    return round(total,2)
 
 def priceDstribution(products):
     prices = []

@@ -1,5 +1,4 @@
 import math
-import json
 from openpyxl import Workbook
 from openpyxl import load_workbook
 from datetime import date
@@ -11,11 +10,10 @@ from collections.abc import Mapping, Sequence
 from Customer import Customer
 from Product import Product
 from StringMethod import *
+from jsonStaticFiles import *
+from WeeklySession import WeeklySession
 
-def getSettings(filename = "config.json") -> dict:
-    with open(filename,"r",encoding="utf-8") as excelLineSettingFile:  
-        settings = json.load(excelLineSettingFile)
-    return settings
+
         
 def formatExcel(path = "LifePlus.xlsx", saveFile = False):
     # Define constants for cell column names
@@ -33,48 +31,39 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False):
     wb = load_workbook(path)
     ws = wb['订单列表(行排不合并)']
 
-    order = {}
-    merch = {}
+    #   master object for this excel
+    session = WeeklySession()
 
-    #   Populate merchandise dictionary
-    for row in ws.values:
-        if row[PRODUCT] not in merch.keys():
-            merch[row[PRODUCT]] = Product(row[PRODUCT],row[PRICE])
+    wsValues = ws.values
 
-    #   Populate order dictionary
+    #   Populate session
     note = ''
-    for row in ws.values:
-        #   Skip rows
-        if row[NAME] == '微信昵称':         #   Skip first row
+    for row in wsValues:
+        #   Skip header
+        if row[NAME] == '微信昵称':
             continue
-
-        if row[STATUS] == '已取消':
-            continue
-        
         #   Process orders with help from Yonghong
         if row[NAME] == 'Yonghong' and row[COMMENT] != '' and row[COMMENT] is not None: 
             real_name = row[COMMENT]
-            note = ''
         else:
             real_name = row[NAME]
-            
-            if row[COMMENT] is not None and row[COMMENT] != ' ':
-                if note != row[COMMENT]:    #   Avoid assignment to same values
+            #   prevent note from updating to blank
+            if note is None or note.strip() == '':
+                if row[COMMENT] is None or str(row[COMMENT]).strip() == '':
+                    note = ''
+                else:
                     note = row[COMMENT]
-            else:
-                note = ''                  #   Else initialize it to a empty string
+
 
         #   Eliminate special characters, except names with only special characters
         real_name = properWords(real_name) if properWords(real_name) != '' else real_name
         real_name = real_name.lower()
 
-        #   Check if customer is in dict, and process the current row
-        if real_name not in order.keys():
-            order[real_name] = Customer(real_name)  #   Create new customer object
-            order[real_name].memo = note            #   Set comment
-            order[real_name].shopList.add(merch[row[PRODUCT]],row[QUANTITY])    #   Add product to shopping cart
-        else:
-            order[real_name].shopList.add(merch[row[PRODUCT]],row[QUANTITY])
+        #   process current row
+        session.next(real_name, note, row[PRODUCT],row[PRICE],row[QUANTITY])
+
+        #   reset note
+        note = ''
 
     #   Write result to a new sheet
     wb2 = Workbook()
@@ -102,30 +91,44 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False):
     bottom_left = Border(left=Side(style='thin'),
                         right=Side(style='thin'),
                         bottom=Side(style='thin'))
-    orderedList = {}
+
+    #   ----------------------------------Sorting & Ranking--------------------------------
+    orderedList: dict [float, Customer] = {}
     #   map a unique number to a customer for ranking
-    for customer in order.values():
-        hashCode = 0
+    for customer in session.customerDict.values():
+        hashCode: float = 0.0
         #   generate a unique hashcode that represent
         for char in customer.name:
             hashCode += ord(char)
         #   make the magnitude hashCode less significant to avoid anomalies
+        #   Basically converting the code to a decimal number
         hashCode /= 10 ** (math.ceil(math.log(hashCode, 10)) + 1)
 
+        #   Load the list with value plus the hash code
         orderedList[round(hashCode + customer.shopList.total,3)] = customer
 
+    #   Now we have the sorted key as a list
     rank = list(orderedList)
     rank.sort(reverse=True)
 
-    ROW_PER_PAGE = 47
-    rowcounter = 1
+    #   Load the sorted list into a ordered dictionary in the session
+    orderedCustomers: dict[str, Customer] = {}
+    for i in rank:
+        orderedCustomers[orderedList[i].name] = orderedList[i]
 
+    session.customerDict = orderedCustomers
+
+    #   ----------------------------------Sorting & Ranking ENDS--------------------------------
+    
+    ROW_PER_PAGE = 50
+    rowcounter = 1
+    
     def checkRow(row):
         return ROW_PER_PAGE - row % ROW_PER_PAGE
 
-    for key in rank:
-        # - 2 for spaceing, + 1 for comment/header section
-        if checkRow(rowcounter) - 1  < len(orderedList[key].shopList.container) + 1 :
+    for cx in session.customerDict.values():
+        # - 1 for spaceing, + 1 for comment/header section
+        if checkRow(rowcounter) - 1  < len(cx.shopList.shoppingCart) + 1 :
             rowcounter += checkRow(rowcounter) + 1 # + 1 for comment/header
         
         #   Apply styles
@@ -140,24 +143,24 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False):
         ws2.cell(rowcounter,4).alignment = Alignment(horizontal='center')
         
 
-        ws2.cell(rowcounter, 1).value = orderedList[key].name  #   Print customer name
-        ws2.cell(rowcounter, 2).value = orderedList[key].memo  #   Print customer note
+        ws2.cell(rowcounter, 1).value = cx.name  #   Print customer name
+        ws2.cell(rowcounter, 2).value = cx.memo  #   Print customer note
         ws2.cell(rowcounter, 3).value = "单价"                 #    Header
         ws2.cell(rowcounter, 4).value = "数量"                  #    Header
-        ws2.cell(rowcounter + 1, 1).value = "总计: ${}".format(orderedList[key].shopList.total)  #   Print total price
+        ws2.cell(rowcounter + 1, 1).value = "总计: ${}".format(cx.shopList.total)  #   Print total price
 
     
         rowcounter += 1
         
         #   Add additional rows for manual
-        for k in range(1,4):
-            ws2.cell(rowcounter, 1).border = Border(left = Side(style='thin'))
-            for i in range(2,5):
-                ws2.cell(rowcounter, i).border = thin_border
-            rowcounter += 1
+        # for k in range(1,4):
+        #     ws2.cell(rowcounter, 1).border = Border(left = Side(style='thin'))
+        #     for i in range(2,5):
+        #         ws2.cell(rowcounter, i).border = thin_border
+        #     rowcounter += 1
 
         #   Print each product in shopping list
-        for k, v in orderedList[key].shopList.container.items():
+        for k, v in cx.shopList.shoppingCart.items():
             # Apply borders & Styles
             for i in range(2,5):
                 ws2.cell(rowcounter, i).border = thin_border
@@ -182,8 +185,7 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False):
     if saveFile:
         wb2.save(newpath)  # Add date to file name
 
-    merch.pop("商品名称")
-    return [[orderedList,rank], merch, newpath]
+    return session
 
 
 def addDeliverySheet(result, jsonPath: str = "") -> None:
@@ -192,8 +194,6 @@ def addDeliverySheet(result, jsonPath: str = "") -> None:
     path = result[2]
     wb = load_workbook(path)
     ws = wb.create_sheet("送货清单")
-
-
 
     ws.cell(1, 1).value = '微信昵称'
     ws.cell(1, 2).value = '方位'
@@ -240,3 +240,20 @@ def addDeliverySheet(result, jsonPath: str = "") -> None:
         rowcounter += 1
     
     wb.save(path)
+
+
+
+#   ---------------------------Similarity check-------------------------------
+from difflib import SequenceMatcher
+
+def check(a,b):
+    return SequenceMatcher(None,a,b).ratio()
+
+def similarityCheck(result):
+    customers = result[0][0]
+
+    for n in customers.values():
+        for p in customers.values():
+            sim = check(n.name, p.name)
+            if sim < 1 and sim > 0.6:
+                print("Potential overlap: {} <==> {} -----> {}\n".format(n.name, p.name,sim))

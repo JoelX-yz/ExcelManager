@@ -1,9 +1,24 @@
 class Product:
-    def __init__(self, name, price, size = "Default", category = "Default"):
+    def __init__(self, name: str, price: float, size = "Default", category = "Default"):
         self.name = name
         self.price = price
         self.size = size
         self.category = category
         self.availibility = True
-        self.importPrice = 0
-        self.count = 0
+        self.cost = 0
+        self.totalCount = 0
+        
+    @classmethod
+    def getallProductNames():
+        return Product.allProductNames
+
+    def setAvailibility(self, status: bool):
+        self.availibility = status
+    
+    def setcost(self, price: float):
+        self.cost = price
+    
+    def setPrice(self, price: float):
+        self.price = price
+    
+    
