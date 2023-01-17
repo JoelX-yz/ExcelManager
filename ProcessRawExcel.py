@@ -5,17 +5,16 @@ from datetime import date
 from openpyxl.styles import Alignment
 from openpyxl.styles.borders import Border, Side
 from openpyxl.styles import Font, Color
-from collections.abc import Mapping, Sequence
 
-from Customer import Customer
-from Product import Product
-from StringMethod import *
-from jsonStaticFiles import *
-from WeeklySession import WeeklySession
+from Objects.Customer import Customer
+from Objects.WeeklySession import WeeklySession
+from Modules.StringMethod import *
+from Modules.jsonStaticFiles import *
+
 
 
         
-def formatExcel(path = "LifePlus.xlsx", saveFile = False):
+def formatExcel(path = "LifePlus.xlsx", saveFile = False) -> WeeklySession:
     # Define constants for cell column names
     settings = getSettings()
     NAME        = settings['NAME']
