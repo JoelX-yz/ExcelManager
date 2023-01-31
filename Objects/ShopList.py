@@ -1,4 +1,4 @@
-from Product import *
+from .Product import *
 
 """
 Object works as a shopping cart

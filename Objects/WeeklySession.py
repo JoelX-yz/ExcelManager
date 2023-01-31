@@ -1,4 +1,4 @@
-from Customer import *
+from .Customer import *
 
 class WeeklySession:
     def __init__(self):

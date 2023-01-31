@@ -1,5 +1,5 @@
-from ShopList import *
-from StringMethod import *
+from .ShopList import *
+from Modules.StringMethod import *
 
 class Customer:
     def __init__(self, name: str):
@@ -10,7 +10,3 @@ class Customer:
     
     def buy(self, product: Product, quantity: int):
         self.shopList.add(product, quantity)
-
-    @classmethod
-    def getAllCustomerNames():
-        return Customer.allCustomerNames

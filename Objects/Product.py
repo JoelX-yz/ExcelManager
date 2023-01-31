@@ -7,10 +7,6 @@ class Product:
         self.availibility = True
         self.cost = 0
         self.totalCount = 0
-        
-    @classmethod
-    def getallProductNames():
-        return Product.allProductNames
 
     def setAvailibility(self, status: bool):
         self.availibility = status

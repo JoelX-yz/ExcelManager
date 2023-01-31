@@ -14,7 +14,7 @@ from Modules.jsonStaticFiles import *
 
 
         
-def formatExcel(path = "LifePlus.xlsx", saveFile = False) -> WeeklySession:
+def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySession:
     # Define constants for cell column names
     settings = getSettings()
     NAME        = settings['NAME']
@@ -92,31 +92,10 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False) -> WeeklySession:
                         bottom=Side(style='thin'))
 
     #   ----------------------------------Sorting & Ranking--------------------------------
-    orderedList: dict [float, Customer] = {}
-    #   map a unique number to a customer for ranking
-    for customer in session.customerDict.values():
-        hashCode: float = 0.0
-        #   generate a unique hashcode that represent
-        for char in customer.name:
-            hashCode += ord(char)
-        #   make the magnitude hashCode less significant to avoid anomalies
-        #   Basically converting the code to a decimal number
-        hashCode /= 10 ** (math.ceil(math.log(hashCode, 10)) + 1)
+    sorted_customerDict = sorted(session.customerDict.items(),key=lambda x:x[1].shopList.total,reverse=True)
+    session.customerDict = dict(sorted_customerDict)
 
-        #   Load the list with value plus the hash code
-        orderedList[round(hashCode + customer.shopList.total,3)] = customer
-
-    #   Now we have the sorted key as a list
-    rank = list(orderedList)
-    rank.sort(reverse=True)
-
-    #   Load the sorted list into a ordered dictionary in the session
-    orderedCustomers: dict[str, Customer] = {}
-    for i in rank:
-        orderedCustomers[orderedList[i].name] = orderedList[i]
-
-    session.customerDict = orderedCustomers
-
+    print(session.customerDict)
     #   ----------------------------------Sorting & Ranking ENDS--------------------------------
     
     ROW_PER_PAGE = 50
@@ -151,12 +130,13 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False) -> WeeklySession:
     
         rowcounter += 1
         
-        #   Add additional rows for manual
-        # for k in range(1,4):
-        #     ws2.cell(rowcounter, 1).border = Border(left = Side(style='thin'))
-        #     for i in range(2,5):
-        #         ws2.cell(rowcounter, i).border = thin_border
-        #     rowcounter += 1
+        #  Add additional rows for manual input
+        if space > 0:
+            for k in range(1,space + 1):
+                ws2.cell(rowcounter, 1).border = Border(left = Side(style='thin'))
+                for i in range(2,5):
+                    ws2.cell(rowcounter, i).border = thin_border
+                rowcounter += 1
 
         #   Print each product in shopping list
         for k, v in cx.shopList.shoppingCart.items():
@@ -164,7 +144,7 @@ def formatExcel(path = "LifePlus.xlsx", saveFile = False) -> WeeklySession:
             for i in range(2,5):
                 ws2.cell(rowcounter, i).border = thin_border
 
-            ws2.cell(rowcounter, 1).border = Border(left = Side(style='thin'))
+            ws2.cell(rowcounter,1).border = Border(left = Side(style='thin'))
             ws2.cell(rowcounter,3).alignment = Alignment(horizontal='center')
             ws2.cell(rowcounter,4).alignment = Alignment(horizontal='center')
 
