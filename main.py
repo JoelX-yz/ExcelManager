@@ -3,7 +3,7 @@ import Modules.Stats as st
 
 
 
-result = pe.formatExcel(saveFile=True)
-#pe.addDeliverySheet(result)
-#print(st.grossRevenue(result[1]))
+currentSession = pe.formatExcel(saveFile=True)
+print(currentSession.getGrossSale())
+pe.addDeliverySheet(currentSession)
 #pe.similarityCheck(result)

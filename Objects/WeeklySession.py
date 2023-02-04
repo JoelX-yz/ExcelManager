@@ -4,6 +4,7 @@ class WeeklySession:
     def __init__(self):
         self.customerDict: dict[str, Customer] = {}
         self.productDict: dict[str, Product] = {}
+        self.filepath =  ""
     
     def addProduct(self, product: Product):
         self.productDict[product.name] = product
@@ -31,14 +32,10 @@ class WeeklySession:
     #   Calculates current runtime's total sale
     def getGrossSale(self) -> float:
         total = 0
-        for k,v in self.productDict:
-            total += v.price * v.number
+        for v in self.productDict.values():
+            total += v.price * v.totalCount
         return total
     
-    #   Return current runtime's comprehensive data
-    def getAll(self) -> list:
-        return [self.productList, self.getGrossSale()]
-    
     #   Return a list with customer objects that the shopping cart total is greater than threshold
-    def getDeliveryList(self, threshold: float = 120.0) -> list:
-        return [cx for cx in self.customerList if cx.shopList.total > threshold]
+    def getDeliveryList(self, threshold: float = 120.0) -> list[Customer]:
+        return [cx for cx in self.customerDict.values() if cx.shopList.total > threshold]

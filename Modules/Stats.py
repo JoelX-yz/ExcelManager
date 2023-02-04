@@ -1,15 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def grossRevenue(products):
-    total = 0
-    for v in products.values():
-        if v.price is None:
-            continue
-        total += v.price * v.count
-    
-    return round(total,2)
-
 def priceDstribution(products):
     prices = []
     count = []

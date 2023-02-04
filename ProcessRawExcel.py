@@ -94,8 +94,6 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
     #   ----------------------------------Sorting & Ranking--------------------------------
     sorted_customerDict = sorted(session.customerDict.items(),key=lambda x:x[1].shopList.total,reverse=True)
     session.customerDict = dict(sorted_customerDict)
-
-    print(session.customerDict)
     #   ----------------------------------Sorting & Ranking ENDS--------------------------------
     
     ROW_PER_PAGE = 50
@@ -161,17 +159,15 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
         
     #   Save file
     newpath = 'LifePlus打印用表' + str(date.today()) + '.xlsx'
+    session.filepath = newpath
     if saveFile:
         wb2.save(newpath)  # Add date to file name
 
     return session
 
 
-def addDeliverySheet(result, jsonPath: str = "") -> None:
-    rank = result[0][1]
-    customer = result[0][0]
-    path = result[2]
-    wb = load_workbook(path)
+def addDeliverySheet(currentSession: WeeklySession) -> None:
+    wb = load_workbook(currentSession.filepath)
     ws = wb.create_sheet("送货清单")
 
     ws.cell(1, 1).value = '微信昵称'
@@ -194,20 +190,17 @@ def addDeliverySheet(result, jsonPath: str = "") -> None:
     for i in range(1,7):
         ws.cell(1, i).border = thin_border
 
-    def checkPrice(x):
-        return True if x > 120 else False
     
-    delivery = filter(checkPrice,rank)
+    delivery = currentSession.getDeliveryList()
 
     rowcounter = 2
     for v in delivery:
-        
-        ws.cell(rowcounter,1).value = customer[v].name
+        ws.cell(rowcounter,1).value = v.name
         ws.cell(rowcounter,2).value = ""
-        ws.cell(rowcounter,3).value = customer[v].shopList.total
+        ws.cell(rowcounter,3).value = v.shopList.total
         ws.cell(rowcounter,4).value = ""
         ws.cell(rowcounter,5).value = ""
-        ws.cell(rowcounter,6).value = customer[v].memo
+        ws.cell(rowcounter,6).value = v.memo
 
         for i in range(1,7):
              ws.cell(rowcounter, i).border = thin_border
@@ -218,7 +211,7 @@ def addDeliverySheet(result, jsonPath: str = "") -> None:
 
         rowcounter += 1
     
-    wb.save(path)
+    wb.save(currentSession.filepath)
 
 
 
