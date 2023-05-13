@@ -229,3 +229,9 @@ def similarityCheck(result):
             sim = check(n.name, p.name)
             if sim < 1 and sim > 0.6:
                 print("Potential overlap: {} <==> {} -----> {}\n".format(n.name, p.name,sim))
+
+def printNames(result):
+    customers = result[0][0]
+
+    for n in customers.values():
+        print(n.name)
