@@ -3,72 +3,63 @@
 # 不填数量默认为 1
 
 import sys
-import re
 
-DELIMINATOR = [',','，']
-UNITS = ['箱','份','只','个','盒','包','袋','件','条','桶']
+def ProcessSingleFile(docname):
+    try:
+        with open(docname, 'r', encoding="utf-8") as f, open("RES_" + docname, "w", encoding="utf-8") as new:
+            for line in f:
+                customer = [x.strip() for x in line.split(" ")]
+                for item in customer[1:]:
+                    suffix = ",1" if ',' not in item else ""
+                    new.write(f"{customer[0]}.{item}{suffix}\n")
+        return "RES_" + docname
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
 
-pattern = r'^\d+(\.)?(\s)?[\u4e00-\u9fa5\w\s]+(?:\d+[\w\s]+)?$'
-text = '1. 你好100米'
+def CountProducts(docname):
+    try:
+        with open(docname, 'r', encoding="utf-8") as doc:
+            products = {}
+            for line in doc:
+                try:
+                    parts = line.split(".")
+                    product, quantity = parts[2], int(parts[3])
+                    products[product] = products.get(product, 0) + quantity
+                except IndexError:
+                    print(f"Error in line format: {line.strip()} in file {docname}")
 
-if re.match(pattern,text): print(text)
+            # Print the products and their counts
+            for product, count in products.items():
+                print(f"{product} : {count}")
+            print("---------------")
+            for product in products:
+                print(product)
+            print("================")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-def sort(docname):
-    f = open(docname,'r',encoding="utf-8")
-    new = open("RES_" + docname,"w",encoding="utf-8")
 
-    customer = []
-    for line in f:
-        customer = line.split(" ")
-        customer = [x.strip() for x in customer]
-        for i in range(1,len(customer)):
-            if ',' not in customer[i]:
-                new.write("{}.{},1\n".format(customer[0],customer[i]))
-            else:
-                new.write("{}.{}\n".format(customer[0],customer[i]))
+def AggregateFiles(number):
+    try:
+        with open("sum.txt", "w", encoding="utf-8") as new_file:
+            for i in range(1, number + 1):
+                try:
+                    with open(f"RES_{i}.txt", "r", encoding="utf-8") as currDoc:
+                        for line in currDoc:
+                            new_file.write(line.replace(",", "."))
+                except FileNotFoundError:
+                    print(f"File RES_{i}.txt not found, skipping.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-    f.close()
-    new.close()
-    return "RES_"+docname
-
-def count(docname):
-    doc = open(docname,'r',encoding="utf-8")
-    products = {}
-    temp = []
-    order = []
-    for line in doc:
-        try:
-            order = line.split(".")
-            temp = order[2::]
-        except IndexError:
-            print(docname + " : " + line)
-
-        if (temp[0] in products):
-            products[temp[0]] += int(temp[1])
-        else:
-            products[temp[0]] = int(temp[1])
-    for key,val in products.items():
-        print(key,":",val)
-    print("---------------")
-    for key,val in products.items():
-        print(key)
-    print("================")
-
-def sumOutput(number):
-    new = open("sum.txt","w",encoding = "utf-8")
-    for i in range(1,number+1):
-        currDoc = open("RES_" + str(i) + ".txt","r",encoding="utf-8")
-        for line in currDoc:
-            new.write(line.replace(",","."))
-        currDoc.close()
-    new.close()
 
 def multiRun(number):
     for i in range(1,number + 1):
-        sort(str(i) + ".txt")
+        ProcessSingleFile(str(i) + ".txt")
 
-    sumOutput(number)
-    count("sum.txt")
+    AggregateFiles(number)
+    CountProducts("sum.txt")
 
 def main(arg):
     multiRun(arg)

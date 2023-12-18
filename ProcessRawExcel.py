@@ -47,11 +47,12 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
         else:
             real_name = row[NAME]
             #   prevent note from updating to blank
-            if note is None or note.strip() == '':
-                if row[COMMENT] is None or str(row[COMMENT]).strip() == '':
-                    note = ''
-                else:
-                    note = row[COMMENT]
+            #if note is None or note.strip() == '':
+            
+            if row[COMMENT] is None or str(row[COMMENT]).strip() == '':
+                note = ''
+            else:
+                note = row[COMMENT]
 
 
         #   Eliminate special characters, except names with only special characters

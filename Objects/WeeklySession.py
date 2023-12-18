@@ -26,7 +26,8 @@ class WeeklySession:
         else:
             product = self.productDict[productName]
         
-        customer.memo = memo
+        if customer.memo == '':
+            customer.memo = memo
         customer.buy(product, quantity)
 
     #   Calculates current runtime's total sale
