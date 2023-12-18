@@ -1,3 +1,7 @@
+'''
+
+'''
+
 import math
 from openpyxl import Workbook
 from openpyxl import load_workbook
@@ -12,9 +16,18 @@ from Modules.StringMethod import *
 from Modules.jsonStaticFiles import *
 
 
+def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = False) -> WeeklySession:
+    """Reads an excel file and combine multiple orders into one
 
-        
-def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySession:
+    Args:
+        path (str, optional): Path of the excel file. Defaults to "LifePlus.xlsx".
+        space (int, optional): Adds additional empty row between each customer's order.  Defaults to 0.
+        saveFile (bool, optional): Set the option to generate output file, when performing statistical analysis this should use False. Defaults to False.
+
+    Returns:
+        WeeklySession: an object that holds a weekly group order details
+    """
+
     # Define constants for cell column names
     settings = getSettings()
     NAME        = settings['NAME']
@@ -27,17 +40,24 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
     STATUS      = settings['STATUS']
     PHONE       = settings['PHONE']
 
+    COL_A_WIDTH = 16
+    COL_B_WIDTH = 60
+    COL_C_WIDTH = 10
+    COL_D_WIDTH = 10
+
+    ROW_PER_PAGE = 50
+
     wb = load_workbook(path)
     ws = wb['订单列表(行排不合并)']
 
     #   master object for this excel
     session = WeeklySession()
 
-    wsValues = ws.values
+    ws_values = ws.values
 
     #   Populate session
     note = ''
-    for row in wsValues:
+    for row in ws_values:
         #   Skip header
         if row[NAME] == '微信昵称':
             continue
@@ -71,42 +91,41 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
     ws2.title = '订单列表'
 
     #   Set Optimized Column width, need to adjust based on actual situation
-    ws2.column_dimensions['A'].width = 16
-    ws2.column_dimensions['B'].width = 60
-    ws2.column_dimensions['C'].width = 10
-    ws2.column_dimensions['D'].width = 10
+    ws2.column_dimensions['A'].width = COL_A_WIDTH
+    ws2.column_dimensions['B'].width = COL_B_WIDTH
+    ws2.column_dimensions['C'].width = COL_C_WIDTH
+    ws2.column_dimensions['D'].width = COL_D_WIDTH
 
     ws2.print_options.horizontalCentered = True
 
     #   Apply Borders and TextWrap
-    thin_border = Border(left=Side(style='thin'),
-                        right=Side(style='thin'),
-                        top=Side(style='thin'),
-                        bottom=Side(style='thin'))
+    thin_border = Border(left   = Side(style='thin'),
+                         right  = Side(style='thin'),
+                         top    = Side(style='thin'),
+                         bottom = Side(style='thin'))
 
-    top_left = Border(left=Side(style='thin'),
-                        right=Side(style='thin'),
-                        top=Side(style='thin'))
+    top_left    = Border(left   = Side(style='thin'),
+                         right  = Side(style='thin'),
+                         top    = Side(style='thin'))
 
-    bottom_left = Border(left=Side(style='thin'),
-                        right=Side(style='thin'),
-                        bottom=Side(style='thin'))
+    bottom_left = Border(left   = Side(style='thin'),
+                         right  = Side(style='thin'),
+                         bottom = Side(style='thin'))
 
-    #   ----------------------------------Sorting & Ranking--------------------------------
-    sorted_customerDict = sorted(session.customerDict.items(),key=lambda x:x[1].shopList.total,reverse=True)
-    session.customerDict = dict(sorted_customerDict)
-    #   ----------------------------------Sorting & Ranking ENDS--------------------------------
+    #   Sort the dictionary based on the order amount
+    session.customerDict = dict(sorted(session.customerDict.items(),
+                                       key=lambda x: x[1].shopList.total,
+                                       reverse=True))
     
-    ROW_PER_PAGE = 50
-    rowcounter = 1
-    
-    def checkRow(row):
+    def calc_empty_row_on_sheet(row):
         return ROW_PER_PAGE - row % ROW_PER_PAGE
 
-    for cx in session.customerDict.values():
+    rowcounter = 1
+
+    for customer in session.customerDict.values():
         # - 1 for spaceing, + 1 for comment/header section
-        if checkRow(rowcounter) - 1  < len(cx.shopList.shoppingCart) + 1 :
-            rowcounter += checkRow(rowcounter) + 1 # + 1 for comment/header
+        if calc_empty_row_on_sheet(rowcounter) - 1  < len(customer.shopList.shoppingCart) + 1 :
+            rowcounter += calc_empty_row_on_sheet(rowcounter) + 1 # + 1 for comment/header
         
         #   Apply styles
         ws2.cell(rowcounter, 1).border = top_left
@@ -120,11 +139,11 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
         ws2.cell(rowcounter,4).alignment = Alignment(horizontal='center')
         
 
-        ws2.cell(rowcounter, 1).value = cx.name  #   Print customer name
-        ws2.cell(rowcounter, 2).value = cx.memo  #   Print customer note
-        ws2.cell(rowcounter, 3).value = "单价"                 #    Header
-        ws2.cell(rowcounter, 4).value = "数量"                  #    Header
-        ws2.cell(rowcounter + 1, 1).value = "总计: ${}".format(cx.shopList.total)  #   Print total price
+        ws2.cell(rowcounter, 1).value = customer.name  
+        ws2.cell(rowcounter, 2).value = customer.memo  
+        ws2.cell(rowcounter, 3).value = "单价"    
+        ws2.cell(rowcounter, 4).value = "数量"    
+        ws2.cell(rowcounter + 1, 1).value = "总计: ${}".format(customer.shopList.total)  
 
     
         rowcounter += 1
@@ -138,7 +157,7 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
                 rowcounter += 1
 
         #   Print each product in shopping list
-        for k, v in cx.shopList.shoppingCart.items():
+        for k, v in customer.shopList.shoppingCart.items():
             # Apply borders & Styles
             for i in range(2,5):
                 ws2.cell(rowcounter, i).border = thin_border
@@ -155,13 +174,13 @@ def formatExcel(path = "LifePlus.xlsx",space = 0, saveFile = False) -> WeeklySes
         ws2.cell(rowcounter-1, 1).border = bottom_left
 
         #   Add spaces between each order, if it is not the end of page.
-        if checkRow(rowcounter) > 2:
+        if calc_empty_row_on_sheet(rowcounter) > 2:
             rowcounter += 1
         
     #   Save file
     newpath = 'LifePlus打印用表' + str(date.today()) + '.xlsx'
     session.filepath = newpath
-    if saveFile:
+    if save_file:
         wb2.save(newpath)  # Add date to file name
 
     return session

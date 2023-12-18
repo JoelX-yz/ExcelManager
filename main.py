@@ -3,7 +3,7 @@ import Modules.Stats as st
 
 
 
-currentSession = pe.formatExcel(saveFile=True)
+currentSession = pe.format_excel(saveFile=True)
 print(currentSession.getGrossSale())
 
 pe.addDeliverySheet(currentSession)
