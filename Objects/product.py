@@ -6,15 +6,15 @@ class Product:
         self.category = category
         self.availibility = True
         self.cost = 0
-        self.totalCount = 0
+        self.total_count = 0
 
-    def setAvailibility(self, status: bool):
+    def set_availibility(self, status: bool):
         self.availibility = status
     
-    def setcost(self, price: float):
+    def set_cost(self, price: float):
         self.cost = price
     
-    def setPrice(self, price: float):
+    def set_price(self, price: float):
         self.price = price
     
     

@@ -1,13 +1,10 @@
-import ProcessRawExcel as pe
+import process_excel as pe
 import Modules.Stats as st
 
 
 
 currentSession = pe.format_excel(saveFile=True)
-print(currentSession.getGrossSale())
+print(currentSession.calc_gross_revenue())
 
-pe.addDeliverySheet(currentSession)
+pe.gen_delivery_sheet(currentSession)
 #pe.similarityCheck(result)
-
-for n in currentSession.customerDict.keys():
-    print(n)

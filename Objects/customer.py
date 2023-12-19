@@ -1,4 +1,4 @@
-from .ShopList import *
+from .cart import *
 from Modules.StringMethod import *
 
 class Customer:
@@ -6,7 +6,7 @@ class Customer:
         self.name: str = name
         self.alias: list[str] = []
         self.memo: str = ""
-        self.shopList: ShopList = ShopList()
+        self.cart: Cart = Cart()
     
-    def buy(self, product: Product, quantity: int):
-        self.shopList.add(product, quantity)
+    def add_to_cart(self, product: Product, quantity: int):
+        self.cart.add(product, quantity)

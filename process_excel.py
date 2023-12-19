@@ -10,13 +10,13 @@ from openpyxl.styles import Alignment
 from openpyxl.styles.borders import Border, Side
 from openpyxl.styles import Font, Color
 
-from Objects.Customer import Customer
-from Objects.WeeklySession import WeeklySession
+from Objects.customer import Customer
+from Objects.group_order import GroupOrder
 from Modules.StringMethod import *
 from Modules.jsonStaticFiles import *
 
 
-def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = False) -> WeeklySession:
+def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = False) -> GroupOrder:
     """Reads an excel file and combine multiple orders into one
 
     Args:
@@ -25,7 +25,7 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
         saveFile (bool, optional): Set the option to generate output file, when performing statistical analysis this should use False. Defaults to False.
 
     Returns:
-        WeeklySession: an object that holds a weekly group order details
+        Weeklygroup_order: an object that holds a weekly group order details
     """
 
     # Define constants for cell column names
@@ -51,11 +51,11 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
     ws = wb['订单列表(行排不合并)']
 
     #   master object for this excel
-    session = WeeklySession()
+    group_order = GroupOrder()
 
     ws_values = ws.values
 
-    #   Populate session
+    #   Populate group_order
     note = ''
     for row in ws_values:
         #   Skip header
@@ -66,9 +66,8 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
             real_name = row[COMMENT]
         else:
             real_name = row[NAME]
-            #   prevent note from updating to blank
-            #if note is None or note.strip() == '':
-            
+
+            #   format comment
             if row[COMMENT] is None or str(row[COMMENT]).strip() == '':
                 note = ''
             else:
@@ -80,7 +79,7 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
         real_name = real_name.lower()
 
         #   process current row
-        session.next(real_name, note, row[PRODUCT],row[PRICE],row[QUANTITY])
+        group_order.next(real_name, note, row[PRODUCT],row[PRICE],row[QUANTITY])
 
         #   reset note
         note = ''
@@ -113,8 +112,8 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
                          bottom = Side(style='thin'))
 
     #   Sort the dictionary based on the order amount
-    session.customerDict = dict(sorted(session.customerDict.items(),
-                                       key=lambda x: x[1].shopList.total,
+    group_order.customerDict = dict(sorted(group_order.customerDict.items(),
+                                       key=lambda x: x[1].cart.total,
                                        reverse=True))
     
     def calc_empty_row_on_sheet(row):
@@ -122,9 +121,9 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
 
     rowcounter = 1
 
-    for customer in session.customerDict.values():
+    for customer in group_order.customerDict.values():
         # - 1 for spaceing, + 1 for comment/header section
-        if calc_empty_row_on_sheet(rowcounter) - 1  < len(customer.shopList.shoppingCart) + 1 :
+        if calc_empty_row_on_sheet(rowcounter) - 1  < len(customer.cart.order_items) + 1 :
             rowcounter += calc_empty_row_on_sheet(rowcounter) + 1 # + 1 for comment/header
         
         #   Apply styles
@@ -143,21 +142,21 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
         ws2.cell(rowcounter, 2).value = customer.memo  
         ws2.cell(rowcounter, 3).value = "单价"    
         ws2.cell(rowcounter, 4).value = "数量"    
-        ws2.cell(rowcounter + 1, 1).value = "总计: ${}".format(customer.shopList.total)  
+        ws2.cell(rowcounter + 1, 1).value = "总计: ${}".format(customer.cart.total)  
 
     
         rowcounter += 1
         
         #  Add additional rows for manual input
         if space > 0:
-            for k in range(1,space + 1):
+            for k in range(1, space + 1):
                 ws2.cell(rowcounter, 1).border = Border(left = Side(style='thin'))
                 for i in range(2,5):
                     ws2.cell(rowcounter, i).border = thin_border
                 rowcounter += 1
 
         #   Print each product in shopping list
-        for k, v in customer.shopList.shoppingCart.items():
+        for k, v in customer.cart.order_items.items():
             # Apply borders & Styles
             for i in range(2,5):
                 ws2.cell(rowcounter, i).border = thin_border
@@ -179,15 +178,15 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
         
     #   Save file
     newpath = 'LifePlus打印用表' + str(date.today()) + '.xlsx'
-    session.filepath = newpath
+    group_order.filepath = newpath
     if save_file:
         wb2.save(newpath)  # Add date to file name
 
-    return session
+    return group_order
 
 
-def addDeliverySheet(currentSession: WeeklySession) -> None:
-    wb = load_workbook(currentSession.filepath)
+def gen_delivery_sheet(current_group_order: GroupOrder) -> None:
+    wb = load_workbook(current_group_order.filepath)
     ws = wb.create_sheet("送货清单")
 
     ws.cell(1, 1).value = '微信昵称'
@@ -211,13 +210,13 @@ def addDeliverySheet(currentSession: WeeklySession) -> None:
         ws.cell(1, i).border = thin_border
 
     
-    delivery = currentSession.getDeliveryList()
+    delivery = current_group_order.get_delivery_customer()
 
     rowcounter = 2
     for v in delivery:
         ws.cell(rowcounter,1).value = v.name
         ws.cell(rowcounter,2).value = ""
-        ws.cell(rowcounter,3).value = v.shopList.total
+        ws.cell(rowcounter,3).value = v.cart.total
         ws.cell(rowcounter,4).value = ""
         ws.cell(rowcounter,5).value = ""
         ws.cell(rowcounter,6).value = v.memo
@@ -231,7 +230,7 @@ def addDeliverySheet(currentSession: WeeklySession) -> None:
 
         rowcounter += 1
     
-    wb.save(currentSession.filepath)
+    wb.save(current_group_order.filepath)
 
 
 
