@@ -15,6 +15,19 @@ from Objects.group_order import GroupOrder
 from Modules.StringMethod import *
 from Modules.jsonStaticFiles import *
 
+settings = getSettings()
+NAME        = settings['NAME']
+COMMENT     = settings['COMMENT']
+PRODUCT     = settings['PRODUCT']
+SIZE        = settings['SIZE']
+CAT         = settings['CAT']
+QUANTITY    = settings['QUANTITY']
+PRICE       = settings['PRICE']
+STATUS      = settings['STATUS']
+PHONE       = settings['PHONE']
+
+#def extract_excel_data(paths) -> GroupOrder:
+
 
 def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = False) -> GroupOrder:
     """Reads an excel file and combine multiple orders into one
@@ -29,16 +42,7 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
     """
 
     # Define constants for cell column names
-    settings = getSettings()
-    NAME        = settings['NAME']
-    COMMENT     = settings['COMMENT']
-    PRODUCT     = settings['PRODUCT']
-    SIZE        = settings['SIZE']
-    CAT         = settings['CAT']
-    QUANTITY    = settings['QUANTITY']
-    PRICE       = settings['PRICE']
-    STATUS      = settings['STATUS']
-    PHONE       = settings['PHONE']
+    
 
     COL_A_WIDTH = 16
     COL_B_WIDTH = 60
@@ -54,7 +58,7 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
     group_order = GroupOrder()
 
     ws_values = ws.values
-
+    
     #   Populate group_order
     note = ''
     for row in ws_values:
@@ -79,7 +83,7 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
         real_name = real_name.lower()
 
         #   process current row
-        group_order.next(real_name, note, row[PRODUCT],row[PRICE],row[QUANTITY])
+        group_order.add_order(real_name, note, row[PRODUCT],row[PRICE],row[QUANTITY])
 
         #   reset note
         note = ''
@@ -112,7 +116,7 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
                          bottom = Side(style='thin'))
 
     #   Sort the dictionary based on the order amount
-    group_order.customerDict = dict(sorted(group_order.customerDict.items(),
+    group_order.all_customers = dict(sorted(group_order.all_customers.items(),
                                        key=lambda x: x[1].cart.total,
                                        reverse=True))
     
@@ -121,7 +125,7 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
 
     rowcounter = 1
 
-    for customer in group_order.customerDict.values():
+    for customer in group_order.all_customers.values():
         # - 1 for spaceing, + 1 for comment/header section
         if calc_empty_row_on_sheet(rowcounter) - 1  < len(customer.cart.order_items) + 1 :
             rowcounter += calc_empty_row_on_sheet(rowcounter) + 1 # + 1 for comment/header
@@ -184,6 +188,26 @@ def format_excel(path: str = "LifePlus.xlsx", space: int = 0, save_file: bool = 
 
     return group_order
 
+def generate_product_list_excel(group_order: GroupOrder):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Product List"
+    
+    # Define headers
+    headers = ["Name", "Quantity", "Price", "Cost"]
+    ws.append(headers)
+    
+    # Apply header styling
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+    
+    # Populate product data
+    for product in group_order.all_products.values():
+        ws.append([product.name, product.total_count, product.price, ""])  # Blank cost column
+    
+    # Save to file
+    wb.save("Product List.xlsx")
+
 
 def gen_delivery_sheet(current_group_order: GroupOrder) -> None:
     wb = load_workbook(current_group_order.filepath)
@@ -202,10 +226,10 @@ def gen_delivery_sheet(current_group_order: GroupOrder) -> None:
     ws.column_dimensions['E'].width = 10
     ws.column_dimensions['F'].width = 60
 
-    thin_border = Border(left=Side(style='thin'),
-                        right=Side(style='thin'),
-                        top=Side(style='thin'),
-                        bottom=Side(style='thin'))
+    thin_border = Border(left   =Side(style='thin'),
+                         right  =Side(style='thin'),
+                         top    =Side(style='thin'),
+                         bottom =Side(style='thin'))
     for i in range(1,7):
         ws.cell(1, i).border = thin_border
 
